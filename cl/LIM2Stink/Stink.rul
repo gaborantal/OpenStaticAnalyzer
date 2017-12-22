@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<Rul>
+
+  <ToolDescription>
+    <Configuration name = "Default">
+      <ToolDescriptionItem name = "ID">Stink</ToolDescriptionItem>
+    </Configuration>
+  </ToolDescription>
+  
+
+  <Configurations>
+	<config name="java" redefine="usual"/>
+  </Configurations>
+
+  
+  <Metric id="Empty">
+    <Configuration name="Default">
+      <Enabled>true</Enabled>
+      <Language lang="eng">
+        <Warning>true</Warning>
+        <DisplayName>Empty</DisplayName>
+        <Description>Empty</Description>
+        <HelpText>Empty</HelpText>
+        <WarningText>Empty</WarningText>
+      </Language>
+      <Settings>
+        <Setting editable="true" name="Empty">1</Setting>
+        <Setting editable="true" name="Empty2">0.0</Setting>
+      </Settings>
+      <Group>false</Group>
+      <GroupMember>Bad smells</GroupMember>
+    </Configuration>
+    <Configuration name="java">
+      <Enabled>true</Enabled>
+      <Language lang="eng">
+        <Warning>true</Warning>
+      </Language>
+    </Configuration>
+  </Metric>
+
+  
+
+</Rul>
