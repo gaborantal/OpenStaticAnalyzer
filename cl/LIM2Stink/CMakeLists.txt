@@ -4,6 +4,8 @@ set (SOURCES
     src/main.cpp
     src/LIM2Stink.cpp
     inc/LIM2Stink.h
+    inc/visitors/Singleton.h
+    src/visitors/Singleton.cpp
 )
 
 function (add_language_config LANG)

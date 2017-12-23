@@ -7,41 +7,30 @@
 
 namespace columbus { namespace lim { namespace antipatterns {
 
-	class LIM2StinkVisitor : public columbus::lim::asg::VisitorAbstractNodes {
+  class LIM2StinkVisitor : public columbus::lim::asg::VisitorAbstractNodes {
 
-	public:
+  public:
 
-		LIM2StinkVisitor(asg::Factory& fact, graph::Graph& inGraph, const std::set<std::string>& patterns, columbus::rul::RulHandler& rl);
+    LIM2StinkVisitor(asg::Factory& fact, graph::Graph& inGraph, columbus::rul::RulHandler& rl);
 
-		virtual ~LIM2StinkVisitor();
+    virtual ~LIM2StinkVisitor();
 
-		/** Visit methods */
-		virtual void visit(const columbus::lim::asg::logical::Class&, bool callVirtualBase = true);
-		virtual void visitEnd(const columbus::lim::asg::logical::Class&, bool callVirtualBase = true);
-		virtual void visit(const columbus::lim::asg::logical::Method&, bool callVirtualBase = true);
-		virtual void visitEnd(const columbus::lim::asg::logical::Method&, bool callVirtualBase = true);
+  protected:
+    asg::Factory& factory;
 
+    columbus::graph::Graph& inGraph;
 
-	protected:
-		asg::Factory& factory;
+    columbus::rul::RulHandler& rl;
 
-		columbus::graph::Graph& inGraph;
+    const asg::ReverseEdges& revEdges;
 
-		const std::set<std::string>& patterns;
+    void addWarning(const columbus::lim::asg::logical::Member& member, graph::Graph& graph, graph::Node& node, const std::string& name, const std::string& text);
 
-		columbus::rul::RulHandler& rl;
+    const columbus::lim::asg::logical::Scope* getParentScope(const columbus::lim::asg::logical::Member& member) const;
 
-		const asg::ReverseEdges& revEdges;
-
-	private:
-
-		void addWarning(const columbus::lim::asg::logical::Member& member, graph::Graph& graph, graph::Node& node, const std::string& name, const std::string& text);
-
-		const columbus::lim::asg::logical::Scope* getParentScope(const columbus::lim::asg::logical::Member& member) const;
-
-		// graph helpers
-		int extractInt(const graph::Node& gNode, const std::string& name) const;
-	};
+    // graph helpers
+    int extractInt(const graph::Node& gNode, const std::string& name) const;
+  };
 
 
 }}} //columbus::lim::bsm

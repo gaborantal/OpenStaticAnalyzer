@@ -1,7 +1,9 @@
+#define PROGRAM_NAME "LIM2Stink"
+#define EXECUTABLE_NAME PROGRAM_NAME
+
 #include <fstream>
 #include <iostream>
 #include <lim/inc/lim.h>
-#include <csi/inc/csi.h>
 #include <ErrorCodes.h>
 #include <common/inc/FileSup.h>
 #include <ReleaseVersion.h>
@@ -10,9 +12,8 @@
 #include <rul/inc/RulHandler.h>
 #include <common/inc/WriteMessage.h>
 #include <common/inc/Arguments.h>
-#include <limmetrics/inc/LimMetrics.h>
 
-#include "../inc/LIM2Stink.h"
+#include "../inc/visitors/Singleton.h"
 
 #include <graph/inc/graph.h>
 #include <lim2graph/inc/Lim2GraphConverter.h>
@@ -22,9 +23,6 @@
 
 #include <io/inc/IO.h>
 
-#define PROGRAM_NAME "LIM2Stink"
-#define EXECUTABLE_NAME PROGRAM_NAME
-
 #include "MainCommon.h"
 
 using namespace std;
@@ -32,159 +30,100 @@ using namespace common;
 using namespace columbus;
 using namespace columbus::rul;
 using namespace columbus::lim::asg;
-using namespace columbus::lim::metrics;
 using namespace columbus::lim::antipatterns;
 
 
-
 // constants
-const unsigned int UNREADABLE      = 2;
-const char*        DEF_INI_FILE    = "Stink.rul";
-const string       FLT_EXT         = ".lisi";
 const string       UNDEFINED       = "~~@~~";
-const char*        CSV_EXT         = ".csv";
-const char*        LIMML_EXT       = ".limml";
 const char*        MEM_FILE_EXT    = ".memstat";
-const char*        UNAME_SEP       = "*";
-const char*        COMP_SEP        = "|";
 
 // parameters
-static string listFile = UNDEFINED;
-static string metric = UNDEFINED;
-static string warnings = UNDEFINED;
 
-static bool all = false;
-static bool decl = false;
-static string rulfile = DEF_INI_FILE;
-static string home = UNDEFINED;
-static string rulconfig = "";
-static string separator = ";";
-static bool nocomponent = false;
+static string csvFile;
+static string graphFile;
+static string rulFile = "Stink.rul";
+static string rulConfig = "Default";
+static string separator = ",";
+static bool exportRul = false;
+static list<string> inputFiles;
 
 static string statFile = UNDEFINED;
 static string memstatFile = UNDEFINED;
+static string metric = UNDEFINED;
+static string warnings = UNDEFINED;
 
-static bool noIds = false;
-static string graph_filename;
-static bool exportRul = false;
-
-static list<string> inputFiles;
 
 // Callback methods for argument processing
-static bool ppList (const Option *o, char *argv[]) {
-  listFile = argv[0];
-  return true;
-}
 
-static bool ppMetrics (const Option *o, char *argv[]) {
+static bool ppMetrics( const Option *o, char *argv[] ) {
   metric = argv[0];
   return true;
 }
 
-static bool ppWarnings (const Option *o, char *argv[]) {
+static bool ppWarnings( const Option *o, char *argv[] ) {
   warnings = argv[0];
   return true;
 }
 
-static bool ppSeparator (const Option *o, char *argv[]) {
-  separator = argv[0];
-  return true;
-}
-
-static bool ppRul (const Option *o, char *argv[]) {
-  rulfile = argv[0];
-  return true;
-}
-
-static bool ppRulConfig (const Option *o, char *argv[]) {
-  rulconfig = argv[0];
-  return true;
-}
-static bool ppAll (const Option *o, char *argv[]) {
-  all = true;
-  return true;
-}
-
-static bool ppDecl (const Option *o, char *argv[]) {
-  decl = true;
-  return true;
-}
-
-static bool ppNoComp (const Option *o, char *argv[]) {
-  nocomponent = true;
-  return true;
-}
-
-static bool ppStat (const Option *o, char *argv[]) {
+static bool ppStat( const Option *o, char *argv[] ) {
   statFile = argv[0];
   return true;
 }
 
-static bool ppMemstat (const Option *o, char *argv[]) {
+static bool ppMemstat( const Option *o, char *argv[] ) {
   memstatFile = argv[0];
   return true;
 }
 
-static bool ppNoIDs (const Option *o, char *argv[]) {
-  noIds = true;
+static bool ppCsv( const common::Option *o, char *argv[] ) {
+  csvFile = argv[0];
   return true;
 }
 
-static bool ppGraph (const Option *o, char *argv[]) {
-  graph_filename = argv[0];
+static bool ppRul( const Option *o, char *argv[] ) {
+  rulFile = argv[0];
   return true;
 }
 
-static void ppFile(char *filename) {
+static bool ppRulConfig( const Option *o, char *argv[] ) {
+  rulConfig = argv[0];
+  return true;
+}
+
+static bool ppGraph( const Option *o, char *argv[] ) {
+  graphFile = argv[0];
+  return true;
+}
+
+static void ppFile( char *filename ) {
   inputFiles.push_back(filename);
 }
 
-static bool ppExportRul(const Option *o, char *argv[]) {
+static bool ppExportRul( const Option *o, char *argv[] ) {
   exportRul = true;
   return true;
 }
 
-const Option OPTIONS_OBJ [] = {
-  { false, "-list",         1,  "listFile",   0, OT_WC,    ppList,       NULL,   "The file containing the list of input files"},
-  { false, "-metrics",      1,  "fileName",   0, OT_WC,    ppMetrics,    NULL,   "Output file for antipattern's metrics"},
-  { false, "-warnings",     1,  "fileName",   0, OT_WC,    ppWarnings,   NULL,   "Output file for antipattern's monitor warnings"},
-  { false, "-s",            1,  "character",  0, OT_WC,    ppSeparator,  NULL,   "Separator character"},
-  { false, "-rul",          1,  "rulFile",    0, OT_WC,    ppRul,        NULL,   "The .rul file (default: Stink.rul)"},
-  { false, "-rulconfig",    1,  "config",     0, OT_WC,    ppRulConfig,  NULL,   "The configuration of the .rul file"},
-  { false, "-all",          0,  "",           0, OT_NONE,  ppAll,        NULL,   "All antipatterns defined for the given language are calculated"},
-  { false, "-decl",         0,  "",           0, OT_NONE,  ppDecl,       NULL,   "Declarations and their metrics are written out"},
-  { false, "-nocomponent",  0,  "",           0, OT_NONE,  ppNoComp,     NULL,   "Components are not written out (the column is empty)\n"},
-  { false, "-stat",         1,  "statFile",   0, OT_WC,    ppStat,       NULL,   "Statistics (memory usage, time) is written into <file>"},
-  { false, "-noIds",        0,  "",           0, OT_NONE,  ppNoIDs,      NULL,   "LIMML dump is written out without ids\n"},
-  { false, "-graph",        1,  "graphFile",  0, OT_WC,    ppGraph,      NULL,   "Save binary graph output."},
-  { false, "-exportRul",    0,  "",           0, OT_WC,    ppExportRul,  NULL,   "Save rul into graph output."},
-  COMMON_CL_ARGS
-};
-
-
-void checkInputFiles() {
-
-  if (listFile != UNDEFINED) {
-    ifstream ifs(listFile.c_str());
-    if (ifs.is_open()) {
-      string tmp;
-      while (getline(ifs, tmp)) {
-        if (!tmp.length())
-          continue;
-        if (tmp[tmp.length()-1]==0xD) { // handle DOS line-ends in unix
-          inputFiles.push_back(tmp.substr(0,tmp.length()-1));
-        } else {
-          inputFiles.push_back(tmp);
-        }
-      }
-      ifs.close();
-    }
+static bool ppCsvSeparator( const common::Option *o, char *argv[] ) {
+  if ( strcmp( argv[0], "\\t" ) == 0 ) {
+    separator = '\t';
+  } else if ( argv[0] != 0 ) {
+    separator = argv[0][0];
   }
-
-  if (inputFiles.size() == 0)
-    clError();
+  return true;
 }
 
+const Option OPTIONS_OBJ [] = {
+  { false, "-metrics",      1,  "fileName",   0, OT_WC,    ppMetrics,    NULL,   "Output file for antipattern's metrics"},
+  { false, "-warnings",     1,  "fileName",   0, OT_WC,    ppWarnings,   NULL,   "Output file for antipattern's monitor warnings"},
+  { false, "-stat",         1,  "statFile",   0, OT_WC,    ppStat,       NULL,   "Statistics (memory usage, time) is written into <file>"},
+  { false, "-graph",        1,  "filename",   0, OT_WC,    ppGraph,      NULL,   "Save binary graph output to the given file"},
+  { false, "-csv",          1,  "filename",   0, OT_WC,    ppCsv,        NULL,   "Create csv output file"},
+  CL_CSVSEPARATOR
+  CL_RUL_AND_RULCONFIG("Stink.rul")
+  CL_EXPORTRUL
+  COMMON_CL_ARGS
+};
 
 void checkMemStatFile() {
   if (memstatFile == UNDEFINED)
@@ -201,11 +140,6 @@ void checkMemStatFile() {
     return;
   }
   ofs.close();  
-}
-
-void checkSeparator() {
-  if (separator.length() == 3 && separator[0] == separator[2] && separator[0] == '"')
-    separator = separator[1];
 }
 
 void writeMemStat(const string& msg) {
@@ -408,78 +342,72 @@ void exportCsv( graph::Graph& graph, const string& filename )
 
 int main(int argc, char *argv[]) {
 
-	MAIN_BEGIN
+  MAIN_BEGIN
 
-	MainInit(argc, argv, "-");
+  MainInit(argc, argv, "-");
 
-	checkInputFiles();
-	checkSeparator();
-	checkMemStatFile();
+  checkMemStatFile();
 
-	if (inputFiles.size() != 1) {
-		clError();
-	}
+  if (inputFiles.size() != 1) {
+    clError();
+  }
 
-	writeMemStat("Memory usage at the beginnig: ");
+  writeMemStat("Memory usage at the beginnig: ");
 
-	WriteMsg::write(WriteMsg::mlDebug, "Loading input lim\n");
+  WriteMsg::write(WriteMsg::mlDebug, "Loading input lim\n");
 
-	// lim asg
-	RefDistributorStrTable strTable;
-	Factory factory(strTable, "", limLangOther); // the language and the root name will be loaded
+  // Load LIM
+  RefDistributorStrTable strTable;
+  Factory factory(strTable, "", limLangOther); // the language and the root name will be loaded
 
-	lim::asg::OverrideRelations overrides(factory);
+  lim::asg::OverrideRelations overrides(factory);
 
-	std::list<HeaderData*> header;
-	PropertyData prop;
-	header.push_back(&prop);
-	header.push_back(&overrides);
-	factory.load(inputFiles.begin()->c_str(), header);
+  std::list<HeaderData*> header;
+  PropertyData prop;
+  header.push_back(&prop);
+  header.push_back(&overrides);
+  factory.load(inputFiles.begin()->c_str(), header);
 
+  factory.initializeFilter();
+  loadFilter(factory, inputFiles.begin()->c_str());
 
-	factory.initializeFilter();
-	loadFilter(factory, inputFiles.begin()->c_str());
+  WriteMsg::write(WriteMsg::mlDebug, "Converting lim to graph\n");
 
-	WriteMsg::write(WriteMsg::mlDebug, "Converting lim to graph\n");
+  // Convert LIM to graph
+  graph::Graph limGraph;
+  columbus::lim2graph::convertBaseGraph(factory, limGraph, true, true, true, true);
 
-	//lim to graph conversion
-	graph::Graph inGraph;
-	columbus::lim2graph::convertBaseGraph(factory, inGraph, true, true, true, true);
-
-	inGraph.saveXML("saveXML.xml");
-
-	unsigned long memoryUsage = 0;
-
-	// inGraph.saveXML( "saveXMLMetrics.xml" );
-
-	WriteMsg::write(WriteMsg::mlDebug, "Finding antipatterns\n");
-
-	string apfile;
-	if (common::pathIsAbsolute(rulfile.c_str())) {
-		apfile = rulfile;
-	} else {
-		apfile = getExecutableProgramDir() + (rulfile != UNDEFINED ? rulfile : DEF_INI_FILE);
-	}	
-	
-	RulHandler aprl(apfile, "Default", "eng");
-
-	AlgorithmPreorder ap;
-	ap.setVisitSpecialNodes(true, true);
-	ap.setCrossEdgeToTraversal(lim::asg::edkScope_HasMember);
-	ap.setSafeMode();
-
-	set<string> patterns;
-
-	auto* stinkyVisitor = new LIM2StinkVisitor(factory, inGraph, patterns, aprl);
-
-	ap.run(factory, *stinkyVisitor, factory.getRoot()->getId());
+  // Load RUL file
+  RulHandler rul( common::indep_fullpath( rulFile ), rulConfig, "eng" );
 
 
-	delete stinkyVisitor;
+  unsigned long memoryUsage = 0;
 
-	WriteStats(memoryUsage);
+  AlgorithmPreorder ap;
+  ap.setVisitSpecialNodes(true, true);
+  ap.setCrossEdgeToTraversal(lim::asg::edkScope_HasMember);
+  ap.setSafeMode();
+  ap.setFactory(factory);
 
-	MAIN_END
+  if (rul.getIsEnabled("Singleton")) {
+    SingletonVisitor singletonVisitor(factory, limGraph, rul);
+    ap.addVisitor(singletonVisitor);
+  }
 
-	return 0;
+  ap.run();
+
+  if ( ! graphFile.empty() ) {
+    cout << "Saving graph to " << graphFile << endl;
+    if ( exportRul ) {
+      cout << "Exporting rul" << endl;
+      graphsupport::buildRulToGraph( limGraph, rul );
+    }
+    limGraph.saveBinary( graphFile );
+  }
+
+  WriteStats(memoryUsage);
+
+  MAIN_END
+
+  return 0;
 }
