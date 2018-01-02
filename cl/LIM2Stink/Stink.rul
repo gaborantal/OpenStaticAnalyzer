@@ -7,12 +7,59 @@
     </Configuration>
   </ToolDescription>
   
-
   <Configurations>
-	<config name="java" redefine="usual"/>
+    <config name="java" redefine="usual"/>
   </Configurations>
 
+  <Metric id = "Design Patterns">
+    <Configuration name = "Default">
+      <Enabled>true</Enabled>
+      <Visible>true</Visible>
+      <Group>summarized</Group>
+      <Language lang = "eng">
+        <Warning>true</Warning>
+        <DisplayName>Design Patterns</DisplayName>
+        <Description></Description>
+        <HelpText></HelpText>
+      </Language>
+    </Configuration>
+  </Metric>
   
+  <Metric id="Singleton">
+    <Configuration name="Default">
+      <Enabled>true</Enabled>
+      <Language lang="eng">
+        <Warning>true</Warning>
+        <DisplayName>Singleton pattern</DisplayName>
+        <Description></Description>
+        <HelpText></HelpText>
+        <WarningText></WarningText>
+      </Language>
+      <Group>false</Group>
+      <GroupMember>Design Patterns</GroupMember>
+    </Configuration>
+    <Configuration name="java">
+      <Enabled>true</Enabled>
+      <Language lang="eng">
+        <Warning>true</Warning>
+      </Language>
+    </Configuration>
+  </Metric>
+
+  <Metric id = "Bad Smells">
+    <Configuration name = "Default">
+      <Enabled>true</Enabled>
+      <Visible>true</Visible>
+      <Group>summarized</Group>
+      <Language lang = "eng">
+        <Warning>true</Warning>
+        <DisplayName>Bad Smells</DisplayName>
+        <Description></Description>
+        <HelpText></HelpText>
+      </Language>
+    </Configuration>
+  </Metric>
+
   <Metric id="Empty">
     <Configuration name="Default">
       <Enabled>true</Enabled>
@@ -28,7 +75,7 @@
         <Setting editable="true" name="Empty2">0.0</Setting>
       </Settings>
       <Group>false</Group>
-      <GroupMember>Bad smells</GroupMember>
+      <GroupMember>Bad Smells</GroupMember>
     </Configuration>
     <Configuration name="java">
       <Enabled>true</Enabled>
@@ -37,7 +84,5 @@
       </Language>
     </Configuration>
   </Metric>
-
-  
 
 </Rul>

@@ -17,12 +17,8 @@ namespace columbus { namespace lim { namespace antipatterns {
     virtual ~SingletonVisitor();
 
     /** Visit methods */
-    virtual void visit(const columbus::lim::asg::logical::Class&, bool callVirtualBase = true);
-    virtual void visitEnd(const columbus::lim::asg::logical::Class&, bool callVirtualBase = true);
     virtual void visit(const columbus::lim::asg::logical::Method&, bool callVirtualBase = true);
-    virtual void visitEnd(const columbus::lim::asg::logical::Method&, bool callVirtualBase = true);
   };
-
 
 }}}
 

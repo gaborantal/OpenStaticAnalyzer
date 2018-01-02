@@ -13,6 +13,7 @@
 #include <common/inc/WriteMessage.h>
 #include <common/inc/Arguments.h>
 
+#include "../inc/LIM2Stink.h"
 #include "../inc/visitors/Singleton.h"
 
 #include <graph/inc/graph.h>
@@ -32,11 +33,6 @@ using namespace columbus::rul;
 using namespace columbus::lim::asg;
 using namespace columbus::lim::antipatterns;
 
-
-// constants
-const string       UNDEFINED       = "~~@~~";
-const char*        MEM_FILE_EXT    = ".memstat";
-
 // parameters
 
 static string csvFile;
@@ -47,33 +43,7 @@ static string separator = ",";
 static bool exportRul = false;
 static list<string> inputFiles;
 
-static string statFile = UNDEFINED;
-static string memstatFile = UNDEFINED;
-static string metric = UNDEFINED;
-static string warnings = UNDEFINED;
-
-
 // Callback methods for argument processing
-
-static bool ppMetrics( const Option *o, char *argv[] ) {
-  metric = argv[0];
-  return true;
-}
-
-static bool ppWarnings( const Option *o, char *argv[] ) {
-  warnings = argv[0];
-  return true;
-}
-
-static bool ppStat( const Option *o, char *argv[] ) {
-  statFile = argv[0];
-  return true;
-}
-
-static bool ppMemstat( const Option *o, char *argv[] ) {
-  memstatFile = argv[0];
-  return true;
-}
 
 static bool ppCsv( const common::Option *o, char *argv[] ) {
   csvFile = argv[0];
@@ -114,9 +84,6 @@ static bool ppCsvSeparator( const common::Option *o, char *argv[] ) {
 }
 
 const Option OPTIONS_OBJ [] = {
-  { false, "-metrics",      1,  "fileName",   0, OT_WC,    ppMetrics,    NULL,   "Output file for antipattern's metrics"},
-  { false, "-warnings",     1,  "fileName",   0, OT_WC,    ppWarnings,   NULL,   "Output file for antipattern's monitor warnings"},
-  { false, "-stat",         1,  "statFile",   0, OT_WC,    ppStat,       NULL,   "Statistics (memory usage, time) is written into <file>"},
   { false, "-graph",        1,  "filename",   0, OT_WC,    ppGraph,      NULL,   "Save binary graph output to the given file"},
   { false, "-csv",          1,  "filename",   0, OT_WC,    ppCsv,        NULL,   "Create csv output file"},
   CL_CSVSEPARATOR
@@ -124,79 +91,6 @@ const Option OPTIONS_OBJ [] = {
   CL_EXPORTRUL
   COMMON_CL_ARGS
 };
-
-void checkMemStatFile() {
-  if (memstatFile == UNDEFINED)
-    return;
-    
-  if (!memstatFile.length()) {
-    memstatFile = common::pathRemoveExtension(metric) + MEM_FILE_EXT;
-  }
-
-  ofstream ofs(memstatFile.c_str());
-  if (!ofs.is_open()) {
-    WriteMsg::write(WriteMsg::mlError, "ERROR: Cannot open memory stat file: \"%s\" (statistics will not be created)\n", memstatFile.c_str());
-    memstatFile = UNDEFINED;
-    return;
-  }
-  ofs.close();  
-}
-
-void writeMemStat(const string& msg) {
-  if (memstatFile == UNDEFINED)
-    return;
-  ofstream ofs(memstatFile.c_str(),ofstream::app);
-  if (!ofs.is_open()) {
-    WriteMsg::write(WriteMsg::mlError, "ERROR: Cannot open file: %s\n", memstatFile.c_str());
-    return;
-  }
-  ofs << msg << articulateNumber(common::getProcessUsedMemSize().size) << endl; 
-  ofs.close();
-}
-
-
-void selectPatterns( RulHandler& rl, set<string> &patterns, int patternNum, const char*(*getName)(unsigned int)) {
-
-  for(int i = 0; i < patternNum; i++) {
-    if(rl.getIsDefined(getName(i))) {
-      if(rl.getIsEnabled(getName(i))) {
-        patterns.insert(getName(i));
-        cout << "OK: " << getName(i) << endl;
-      } else cout << "NOT ENABLED: " << getName(i) << endl;
-    } else cout << "NOT DEFINED: " << getName(i) << endl;
-  }
-
-}
-
-
-void WriteStats(unsigned int memory) {
-
-  if (statFile == UNDEFINED)
-    return;
-
-  common::timestat usedtime = common::getProcessUsedTime();
-
-  if (statFile == "") { // wtiting into output stream
-
-    WriteMsg::write(WriteMsg::mlWarning, "%s%u%s%ul%s%ul", separator.c_str(), memory, separator.c_str(), usedtime.user, separator.c_str(), usedtime.system);
-
-  } else {
-
-    ofstream os;
-    os.open(statFile.c_str(), ofstream::out | ofstream::app);
-    if (!os.is_open()) {
-      WriteMsg::write(WriteMsg::mlError, "ERROR: Cannot open file: %s\n", statFile.c_str());
-      return;
-    }
-
-    os << separator << memory
-       << separator << usedtime.user
-       << separator << usedtime.system;
-
-    os.close();
-
-  }
-}
 
 // TODO refactor into common, copied from LIM2Metrics
 void loadFilter(lim::asg::Factory& fact, const string& file) {
@@ -215,6 +109,7 @@ void loadFilter(lim::asg::Factory& fact, const string& file) {
 }
 
 
+/*
 // Copied from CsvExporter --> refactor graphsupport
 graph::Node getParent( graph::Node& node )
 {
@@ -242,12 +137,13 @@ string getLongName( graph::Node& node )
   return "";
 }
 
-/*
 void exportCsv( graph::Graph& graph, const string& filename )
 {
   using namespace graph;
   using namespace io;
-
+  if (!filename) {
+    return;
+  }
   try 
   {
     CsvIO csvOut( filename, IOBase::omWrite );
@@ -337,22 +233,16 @@ void exportCsv( graph::Graph& graph, const string& filename )
     cerr << e.getMessage() << endl;
   }
 }
-
 */
-
 int main(int argc, char *argv[]) {
 
   MAIN_BEGIN
 
   MainInit(argc, argv, "-");
 
-  checkMemStatFile();
-
   if (inputFiles.size() != 1) {
     clError();
   }
-
-  writeMemStat("Memory usage at the beginnig: ");
 
   WriteMsg::write(WriteMsg::mlDebug, "Loading input lim\n");
 
@@ -380,21 +270,26 @@ int main(int argc, char *argv[]) {
   // Load RUL file
   RulHandler rul( common::indep_fullpath( rulFile ), rulConfig, "eng" );
 
-
-  unsigned long memoryUsage = 0;
-
   AlgorithmPreorder ap;
   ap.setVisitSpecialNodes(true, true);
   ap.setCrossEdgeToTraversal(lim::asg::edkScope_HasMember);
   ap.setSafeMode();
   ap.setFactory(factory);
 
+  std::set<std::shared_ptr<LIM2StinkVisitor>> visitors;
+
   if (rul.getIsEnabled("Singleton")) {
-    SingletonVisitor singletonVisitor(factory, limGraph, rul);
-    ap.addVisitor(singletonVisitor);
+    visitors.insert(std::make_shared<SingletonVisitor>(factory, limGraph, rul));
+    // Add visitors
+  }
+
+  for (auto v : visitors) {
+    ap.addVisitor(*v);
   }
 
   ap.run();
+
+  //exportCsv(limGraph, csvFile);
 
   if ( ! graphFile.empty() ) {
     cout << "Saving graph to " << graphFile << endl;
@@ -404,8 +299,6 @@ int main(int argc, char *argv[]) {
     }
     limGraph.saveBinary( graphFile );
   }
-
-  WriteStats(memoryUsage);
 
   MAIN_END
 
