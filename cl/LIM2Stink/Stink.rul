@@ -39,6 +39,27 @@
       <GroupMember>Design Patterns</GroupMember>
     </Configuration>
     <Configuration name="java">
+      <Enabled>false</Enabled>
+      <Language lang="eng">
+        <Warning>true</Warning>
+      </Language>
+    </Configuration>
+  </Metric>
+
+  <Metric id="TemporaryField">
+    <Configuration name="Default">
+      <Enabled>true</Enabled>
+      <Language lang="eng">
+        <Warning>true</Warning>
+        <DisplayName>Temporary Field</DisplayName>
+        <Description></Description>
+        <HelpText></HelpText>
+        <WarningText></WarningText>
+      </Language>
+      <Group>false</Group>
+      <GroupMember>Bad Smells</GroupMember>
+    </Configuration>
+    <Configuration name="java">
       <Enabled>true</Enabled>
       <Language lang="eng">
         <Warning>true</Warning>

@@ -15,6 +15,7 @@
 
 #include "../inc/LIM2Stink.h"
 #include "../inc/visitors/Singleton.h"
+#include "../inc/visitors/TemporaryField.h"
 
 #include <graph/inc/graph.h>
 #include <lim2graph/inc/Lim2GraphConverter.h>
@@ -42,6 +43,7 @@ static string rulConfig = "Default";
 static string separator = ",";
 static bool exportRul = false;
 static list<string> inputFiles;
+
 
 // Callback methods for argument processing
 
@@ -281,6 +283,10 @@ int main(int argc, char *argv[]) {
   if (rul.getIsEnabled("Singleton")) {
     visitors.insert(std::make_shared<SingletonVisitor>(factory, limGraph, rul));
     // Add visitors
+  }
+
+  if (rul.getIsEnabled("TemporaryField")) {
+	  visitors.insert(std::make_shared<TemporaryFieldVisitor>(factory, limGraph, rul));
   }
 
   for (auto v : visitors) {

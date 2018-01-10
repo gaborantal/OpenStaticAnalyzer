@@ -6,6 +6,8 @@ set (SOURCES
     inc/LIM2Stink.h
     inc/visitors/Singleton.h
     src/visitors/Singleton.cpp
+    inc/visitors/TemporaryField.h
+    src/visitors/TemporaryField.cpp
 )
 
 function (add_language_config LANG)
