@@ -591,10 +591,7 @@ int runAnalyzeMode()
   else
     inactives.push_back("FindBugs2Graph");
 
-  if (props.runLimMetrics)
-    ctrl.addTask(new Lim2metricsTask(props));
-  else
-    inactives.push_back("LIM2Metrics");
+  ctrl.addTask(new Lim2metricsTask(props));
 
   if (props.runDCF)
     ctrl.addTask(new DcfTask(props));

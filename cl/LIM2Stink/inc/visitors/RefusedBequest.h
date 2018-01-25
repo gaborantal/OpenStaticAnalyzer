@@ -13,9 +13,9 @@ namespace columbus { namespace lim { namespace antipatterns {
   class RefusedBequestVisitor : public LIM2StinkVisitor {
 
   public:
-	columbus::lim::asg::OverrideRelations& or;
+	columbus::lim::asg::OverrideRelations& ovr;
 
-	RefusedBequestVisitor(asg::Factory& fact, graph::Graph& inGraph, columbus::rul::RulHandler& rl, columbus::lim::asg::OverrideRelations& or);
+	RefusedBequestVisitor(asg::Factory& fact, graph::Graph& inGraph, columbus::rul::RulHandler& rl, columbus::lim::asg::OverrideRelations& ovr);
 
     virtual ~RefusedBequestVisitor();
 

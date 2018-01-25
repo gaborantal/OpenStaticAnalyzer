@@ -12,8 +12,8 @@ using namespace columbus::lim;
 
 namespace columbus { namespace lim { namespace antipatterns {
 
-  RefusedBequestVisitor::RefusedBequestVisitor(asg::Factory& fact, columbus::graph::Graph& inGraph, columbus::rul::RulHandler& rl, columbus::lim::asg::OverrideRelations& or)
-    : LIM2StinkVisitor(fact, inGraph, rl), or(or) { }
+  RefusedBequestVisitor::RefusedBequestVisitor(asg::Factory& fact, columbus::graph::Graph& inGraph, columbus::rul::RulHandler& rl, columbus::lim::asg::OverrideRelations& ovr)
+    : LIM2StinkVisitor(fact, inGraph, rl), ovr(ovr) { }
 
   RefusedBequestVisitor::~RefusedBequestVisitor() {}
 
@@ -83,11 +83,11 @@ namespace columbus { namespace lim { namespace antipatterns {
 		  }
 
 		  float requiredPercent = atof(rul.getSettingValue("RefusedBequest", "Min").data());
-		  float actualPercent = (float)tmpProtectedMembers.size() / protectedMembers.size();
+		  float actualPercent = 1.0 - (float)tmpProtectedMembers.size() / protectedMembers.size();
 		  if (actualPercent < requiredPercent) {
 			  LIM2StinkVisitor::addWarning(_node, "RefusedBequest", desc->getName() + " refuses the bequest of " + _node.getName());
 		  }
-		  WriteMsg::write(WriteMsg::mlDebug, "[RB] %d of %d members were used in the descendat %s means %.3f (required %.3f)\n", tmpProtectedMembers.size(), protectedMembers.size(), desc->getName().c_str(), actualPercent, requiredPercent);
+		  WriteMsg::write(WriteMsg::mlDebug, "[RB] %d of %d members were not used in the descendat %s means %.3f (required %.3f)\n", tmpProtectedMembers.size(), protectedMembers.size(), desc->getName().c_str(), actualPercent, requiredPercent);
 		  tmpProtectedMembers = protectedMembers;
 	  }
 
