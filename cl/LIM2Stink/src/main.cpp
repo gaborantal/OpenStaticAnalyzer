@@ -16,6 +16,7 @@
 #include "../inc/LIM2Stink.h"
 #include "../inc/visitors/Singleton.h"
 #include "../inc/visitors/TemporaryField.h"
+#include "../inc/visitors/RefusedBequest.h"
 
 #include <graph/inc/graph.h>
 #include <lim2graph/inc/Lim2GraphConverter.h>
@@ -287,6 +288,10 @@ int main(int argc, char *argv[]) {
 
   if (rul.getIsEnabled("TemporaryField")) {
 	  visitors.insert(std::make_shared<TemporaryFieldVisitor>(factory, limGraph, rul));
+  }
+
+  if (rul.getIsEnabled("RefusedBequest")) {
+	  visitors.insert(std::make_shared<RefusedBequestVisitor>(factory, limGraph, rul, overrides));
   }
 
   for (auto v : visitors) {

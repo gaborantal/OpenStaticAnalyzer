@@ -8,6 +8,8 @@ set (SOURCES
     src/visitors/Singleton.cpp
     inc/visitors/TemporaryField.h
     src/visitors/TemporaryField.cpp
+    inc/visitors/RefusedBequest.h
+    src/visitors/RefusedBequest.cpp
 )
 
 function (add_language_config LANG)
