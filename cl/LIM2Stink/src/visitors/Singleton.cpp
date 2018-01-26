@@ -39,15 +39,45 @@ namespace columbus { namespace lim { namespace antipatterns {
 
           // Check if the caller is static
           if (callerMethod.getIsStatic()) {
-            WriteMsg::write(WriteMsg::mlDebug, "Protected constructor (%s) called from static method (%s)\n", _node.getName(), callerMethod.getName().c_str());
+            WriteMsg::write(WriteMsg::mlDebug, "Protected constructor (%s) called from static method (%s)\n", _node.getName().c_str(), callerMethod.getName().c_str());
 
             // Check if the two methods are in the same class
             const asg::logical::Class& callerParentClass = dynamic_cast<const asg::logical::Class&>(getParentScope(callerMethod));
             const asg::logical::Class& nodeParentClass = dynamic_cast<const asg::logical::Class&>(getParentScope(_node));
 
             if (callerParentClass.getId() == nodeParentClass.getId()) {
-              WriteMsg::write(WriteMsg::mlDebug, "Singleton found: %s\n", callerParentClass.getName().c_str());
-              addWarning(callerParentClass, "Singleton", "This class is probably a singleton.");
+
+              // Check whether the class has a static property
+              
+              for (auto itattr = nodeParentClass.getMemberListIteratorBegin(); itattr != nodeParentClass.getMemberListIteratorEnd(); ++itattr) {
+                if (asg::Common::getIsAttribute(*itattr)) {
+                  auto& attribute  = dynamic_cast<const asg::logical::Attribute&>(*itattr);
+                  if (attribute.getIsStatic() && !attribute.getTypeIsEmpty()) {
+                    // Check type
+                    auto& type = *attribute.getTypeListIteratorBegin();
+                    if (!type.getTypeFormerIsEmpty()) {
+                      auto& formertype = *type.getTypeFormerListIteratorBegin();
+                      if (asg::Common::getIsTypeFormerType(formertype)) {
+                        auto& typeformertype  = dynamic_cast<const asg::type::TypeFormerType&>(formertype);
+                        if (typeformertype.getRefersTo() && asg::Common::getIsClass(*typeformertype.getRefersTo())) {
+                          WriteMsg::write(WriteMsg::mlDebug, "Singleton field found: %s\n", attribute.getName().c_str());
+
+                          // Check for attribute access
+                          for (auto itattraccess = callerMethod.getAccessesAttributeListIteratorBegin(); itattraccess != callerMethod.getAccessesAttributeListIteratorEnd(); ++itattraccess) {
+                            if (itattraccess->getAttribute() == &attribute) {
+                              WriteMsg::write(WriteMsg::mlDebug, "Singleton field access found\n");
+
+
+                              WriteMsg::write(WriteMsg::mlDebug, "Singleton found: %s\n", callerParentClass.getName().c_str());
+                              addWarning(callerParentClass, "Singleton", "This class is probably a singleton.");
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
