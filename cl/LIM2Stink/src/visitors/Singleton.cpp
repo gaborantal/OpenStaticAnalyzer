@@ -59,7 +59,7 @@ namespace columbus { namespace lim { namespace antipatterns {
                       auto& formertype = *type.getTypeFormerListIteratorBegin();
                       if (asg::Common::getIsTypeFormerType(formertype)) {
                         auto& typeformertype  = dynamic_cast<const asg::type::TypeFormerType&>(formertype);
-                        if (typeformertype.getRefersTo() && asg::Common::getIsClass(*typeformertype.getRefersTo())) {
+                        if (typeformertype.getRefersTo() && asg::Common::getIsClass(*typeformertype.getRefersTo()) && typeformertype.getRefersTo()->getId() == callerParentClass.getId()) {
                           WriteMsg::write(WriteMsg::mlDebug, "Singleton field found: %s\n", attribute.getName().c_str());
 
                           // Check for attribute access
